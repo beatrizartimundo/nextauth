@@ -1,6 +1,7 @@
 import { FormEvent, useContext, useState } from 'react'
 import { AuthContext } from '../contexts/AuthContext';
 import styles from'../styles/Home.module.scss'
+import { witchSSRGuest } from '../utils/withSSRGuest';
 
 export default function Home() {
   const [email,setEmail] = useState('');
@@ -26,3 +27,9 @@ return (
   </form>
 )
 }
+
+export const getServerSideProps = witchSSRGuest(async (ctx) => {
+  return {
+    props: {}
+  }
+})
