@@ -3,7 +3,7 @@ import { parseCookies, setCookie } from 'nookies'
 import { signOut } from '../contexts/AuthContext';
 import { AuthTokenError } from '../error/AuthTokenError';
 
-let cookies = parseCookies()
+
 let isRefreshing = false;
 let failedRequestQueue = [];
 
@@ -27,7 +27,7 @@ export function setupAPIClient(ctx = undefined) {
       if (error.response.status === 401) {
         if (error.response.data?.code === 'token.expired') {
           //renova o token com cookies
-          cookies = parseCookies()
+          cookies = parseCookies(ctx)
 
           const { 'nextauth.refreshToken': refreshToken } = cookies
 
@@ -43,12 +43,12 @@ export function setupAPIClient(ctx = undefined) {
             }).then(response => {
               const { token } = response.data
 
-              setCookie(undefined, 'nextauth.token', token, {
+              setCookie(ctx, 'nextauth.token', token, {
                 maxAge: 60 * 60 * 24 * 30, // 30dias
                 path: '/'
               })
 
-              setCookie(undefined, 'nextauth.refreshToken', response.data.refreshToken, {
+              setCookie(ctx, 'nextauth.refreshToken', response.data.refreshToken, {
                 maxAge: 60 * 60 * 24 * 30, // 30dias
                 path: '/'
               })

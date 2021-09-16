@@ -1,93 +1,113 @@
-import  Router  from "next/router";
+import Router from "next/router";
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { api } from "../services/apiClient";
-import {setCookie, parseCookies,destroyCookie} from 'nookies';
+import { setCookie, parseCookies, destroyCookie } from 'nookies';
 
 type User = {
-    email: string;
-    permissions: string[];
-    roles: string[];
+  email: string;
+  permissions: string[];
+  roles: string[];
 }
 
 type SignInCredentials = {
-    email: string;
-    password: string;
+  email: string;
+  password: string;
 }
 
 type AuthContextData = {
-    signIn(credentials: SignInCredentials): Promise<void>;
-    isAuthenticated: boolean;
-    user: User;
+  signIn(credentials: SignInCredentials): Promise<void>;
+  signOut: () => void;
+  isAuthenticated: boolean;
+  user: User;
 }
 
 type AuthProviderProps = {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export const AuthContext = createContext({} as AuthContextData);
 
+let authChannel: BroadcastChannel
+
 export function signOut() {
-    destroyCookie(undefined, 'nextauth.token')
-    destroyCookie(undefined,'nextauth.refreshToken')
+  destroyCookie(undefined, 'nextauth.token')
+  destroyCookie(undefined, 'nextauth.refreshToken')
 
-    Router.push('/')
+  authChannel.postMessage('signOut')
+
+  Router.push('/')
 }
 
-export function AuthProvider({ children}:AuthProviderProps){
-    const [user,setUser] = useState<User>()
-    const isAuthenticated = !!user;
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<User>()
+  const isAuthenticated = !!user;
 
-    useEffect(() => {
-        const {'nextauth.token':token} = parseCookies()
+  useEffect(() => {
+    authChannel = new BroadcastChannel('auth')
 
-        if(token){
-            api.get('/me').then(response => {
-                const {email,permissions,roles} = response.data
-
-                setUser({email,permissions,roles})
-            })
-            .catch(() => {
-                signOut()
-            })
-        }
-    },[])
-
-    async function signIn({email,password}:SignInCredentials) {
-        try{
-        const response = await api.post('sessions',{
-            email,
-            password,
-        })
-        const { permissions, roles, token, refreshToken} = response.data;
-
-        setCookie(undefined, 'nextauth.token', token, {
-            maxAge: 60*60*24*30, // 30dias
-            path:'/'
-        })
-
-        setCookie(undefined, 'nextauth.refreshToken', refreshToken,{
-            maxAge: 60*60*24*30, // 30dias
-            path:'/'
-        })
-
-        setUser({
-            email,
-            permissions,
-            roles,
-        })
-        api.defaults.headers['Authorization'] = `Bearer ${token}`
-        
-        Router.push('/dashboard');
-
-    }catch(err){
-        console.log(err)
+    authChannel.onmessage = (message) => {
+      switch (message.data) {
+        case 'signOut':
+          break;
+        default:
+          break;
+      }
     }
-}
-    return(
-        <AuthContext.Provider value={{signIn,isAuthenticated, user}}>
-            {children}
-        </AuthContext.Provider>
-    )
+  }, [])
+
+  useEffect(() => {
+    const { 'nextauth.token': token } = parseCookies()
+
+    if (token) {
+      api.get('/me')
+      .then(response => {
+        const { email, permissions, roles } = response.data
+
+        setUser({ email, permissions, roles })
+      })
+        .catch(() => {
+          signOut()
+        })
+    }
+  }, [])
+
+  async function signIn({ email, password }: SignInCredentials) {
+    try {
+      const response = await api.post('sessions', {
+        email,
+        password,
+      })
+      const { permissions, roles, token, refreshToken } = response.data;
+
+      setCookie(undefined, 'nextauth.token', token, {
+        maxAge: 60 * 60 * 24 * 30, // 30dias
+        path: '/'
+      })
+
+      setCookie(undefined, 'nextauth.refreshToken', refreshToken, {
+        maxAge: 60 * 60 * 24 * 30, // 30dias
+        path: '/'
+      })
+
+      setUser({
+        email,
+        permissions,
+        roles,
+      })
+
+      api.defaults.headers['Authorization'] = `Bearer ${token}`
+
+      Router.push('/dashboard');
+
+    } catch (err) {
+      console.log(err)
+    }
+  }
+  return (
+    <AuthContext.Provider value={{ signIn,signOut, isAuthenticated, user }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 //diego@rocketseat.team
 //123456
