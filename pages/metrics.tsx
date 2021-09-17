@@ -1,24 +1,22 @@
 import { setupAPIClient } from "../services/api";
-import { witchSSRAuth } from "../utils/withSSRAuth";
+import { withSSRAuth } from "../utils/withSSRAuth"
 
 export default function Metrics() {
-
-    return (
-        <>
-            <h1>Metrics</h1>
-        </>
-    )
+  return (
+    <>
+      <h1>Metrics</h1>
+    </>
+  )
 }
-export const getServerSideProps = witchSSRAuth(async (ctx) => {
-    const apiClient = setupAPIClient(ctx);
-    const response = await apiClient.get('/me');
 
-
-
-    return {
-        props: {}
-    }
-},{
-	permissions: ['metrics.list'],
-	roles: ['administrator']
+export const getServerSideProps = withSSRAuth(async (ctx) => {
+  const apiClient = setupAPIClient(ctx);
+  const response = await apiClient.get('/me');
+  console.log(response)
+  return {
+    props: {}
+  }
+}, {
+  permissions: ['metrics.list3'],
+  roles: ['administrator'],
 })
